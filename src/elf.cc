@@ -1,73 +1,65 @@
 #include "elf.h"
 
+#include <cassert>
 #include <cstring>
 
 namespace elfy {
 
-ELF::ELF(const char *f) : filename(f), file() {
-  load_file();
-}
+ELF::ELF(const char *f) : filename(f), file() { load_file(); }
 
 inline bool ELF::is_elf() {
-  return std::memcmp(header.e_ident, magic_numbers, 4) == 0;
+  return std::memcmp(e_header.e_ident, magic_numbers, 4) == 0;
 }
 
 void ELF::load_file() {
-  std::ifstream ifs(filename.data(), std::ios::binary | std::ios::ate);
+  std::ifstream ifs(filename.data(), std::ios::binary);
   if (!ifs)
     utility::error(2, "Could not open binary file!");
-
-  buffer.resize(ifs.tellg());
-  // Reset back to the beginning of the stream
-  ifs.seekg(0);
 
   file.swap(ifs);
 }
 
-int get_byte(char *field, int size) {
-  switch (size) {
-  case 1:
-    return *field;
+void ELF::process_section_header() {
+  const int section_size = e_header.e_shnum * section_header_size;
 
-  case 2:
-    return (field[0]) | (field[1] << 8);
+  char section_headers[section_size];
 
-  case 3:
-    return (field[0]) | (field[1] << 8) | (field[2] << 16);
+  if (file.seekg(e_header.e_shoff); !file.read(section_headers, section_size))
+    utility::error(7, "Could not parse section header!");
 
-  // My machine has 4-byte int's so no need to check for 8-bytes :)
-  case 4:
-  case 5:
-  case 6:
-  case 7:
-  case 8:
-    return (field[0]) | (field[1] << 8) | (field[2] << 16) | (field[3] << 24);
+  int j = 0;
+  for (unsigned i = 0; i < e_header.e_shnum; i++) {
+    // TODO: Clean this up
+    char s[section_size];
+    std::strncpy(s, section_headers + j, section_header_size);
 
-  default:
-    utility::error(6, "Bad byte?");
-    exit(-1);
+    if (auto *sh = reinterpret_cast<section_header *>(s))
+      shdrs.push_back(*sh);
+    j += section_header_size;
   }
+
+  assert(shdrs.size() == e_header.e_shnum);
 }
 
-// Assuming little endian :)
-void ELF::process_header() {
-  file.read(header.e_ident, EI_NIDENT);
+void ELF::process_elf_header() {
+  // Get the first 16 bytes of the "ELF" file
+  file.read(e_header.e_ident, EI_NIDENT);
   if (!is_elf())
     utility::error(5, "This file is not an ELF file!");
-    
-  
-  file.read(reinterpret_cast<char*>(&header.e_type), sizeof(elf_header) - EI_NIDENT);
-  return;
+
+  // Get the rest of the elf header
+  if (!file.read(reinterpret_cast<char *>(&e_header.e_type),
+                 elf_header_size - EI_NIDENT))
+    utility::error(6, "Could not parse elf header!");
 }
 
 bool ELF::process() {
-  process_header();
+  process_elf_header();
+  process_section_header();
 
   return true;
 }
 
-void ELF::dump_symbols() {
-
-}
+void ELF::dump_symbols() {}
 
 } // end of namespace elfy

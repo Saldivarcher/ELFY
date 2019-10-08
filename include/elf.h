@@ -51,6 +51,29 @@ struct elf_header {
 
   // Points to the start of the section header table
   elf_qword_t e_shoff;
+
+  // Interpretation of this field depends on the target architecture.
+  elf_word_t e_flags;
+
+  // Contains the size of this header, normally 64 Bytes for 64-bit and 52 Bytes
+  // for 32-bit format.
+  elf_half_t e_ehsize;
+
+  // Contains the size of a program header table entry.
+  elf_half_t e_phentsize;
+
+  // Contains the number of entries in the program header table.
+  elf_half_t e_phnum;
+
+  // Contains the size of a section header table entry.
+  elf_half_t e_shentsize;
+
+  // Contains the number of entries in the section header table.
+  elf_half_t e_shnum;
+
+  // Contains index of the section header table entry that contains the section
+  // names.
+  elf_half_t e_shstrndx;
 };
 
 struct section_header {
@@ -77,11 +100,17 @@ struct section_header {
 
   // Contains extra information about the section
   elf_word_t sh_info;
+
+  // Contains the required alignment of the section
   elf_qword_t sh_addralign;
+
+  // Contains the size, in bytes, of each entry, for sections that contain
+  // fixed-size entries
   elf_qword_t sh_entsize;
 };
 
-const static int section_header_size = sizeof(section_header);
+static constexpr int elf_header_size = sizeof(elf_header);
+static constexpr int section_header_size = sizeof(section_header);
 
 class ELF {
 public:
@@ -91,7 +120,8 @@ public:
   void dump_symbols();
 
 private:
-  elf_header header;
+  elf_header e_header;
+  std::vector<section_header> shdrs;
 
   std::string_view filename;
 
@@ -101,13 +131,12 @@ private:
   bool is_elf();
 
   void load_file();
-  void process_header();
 
-  int get_byte(char *, int);
+  void process_elf_header();
+  void process_section_header();
 
-  // TODO: make unsigned
+  // To check against the first 4 bytes in a file
   static constexpr char magic_numbers[] = {ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3};
-  std::string buffer;
 };
 } // end of namespace elfy
 
