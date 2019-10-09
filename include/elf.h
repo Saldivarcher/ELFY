@@ -152,7 +152,7 @@ private:
 
   bool is_elf();
 
-  std::unique_ptr<symbol_data> get_elf_symbols(const shdrs_ptr&, unsigned long &);
+  std::vector<std::unique_ptr<symbol_data>> get_elf_symbols(const shdrs_ptr&, unsigned long &);
 
   void load_file();
   void process_elf_header();

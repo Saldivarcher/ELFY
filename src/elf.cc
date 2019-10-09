@@ -53,23 +53,51 @@ void ELF::process() {
   process_section_header();
 }
 
-std::unique_ptr<symbol_data> ELF::get_elf_symbols(const shdrs_ptr& section,
+std::vector<std::unique_ptr<symbol_data>> ELF::get_elf_symbols(const shdrs_ptr& section,
                                                   unsigned long &num) {
+
+  auto* symbols = (symbol_data*) calloc(section->sh_size, sizeof(symbol_data));
+
+  file.seekg(section->sh_offset, std::ios::beg);
+  file.read(reinterpret_cast<char*>(symbols), section->sh_size);
+
+  std::vector<std::unique_ptr<symbol_data>> v;
+  for (unsigned i = 0; i < num; i++)
+    v.emplace_back(new symbol_data(symbols[i]));
+
+  free(symbols);
+  return v;
 }
 
 void ELF::dump_symbols() {
   // 1. Iterate through sections
   // 2. Get symbol table for each section
-  //
+  // 3. Print out the symbols within the symbol table
+  
+  // get the string table of a section
+  auto get_str_tab = [&](auto& string_section) -> char * {
+    // TODO: Seems to be segfaulting here. Fix.
+    char *strtab = nullptr;
+    file.seekg(string_section->sh_offset, std::ios::beg);
+    file.read(strtab, string_section->sh_size);
+    return strtab;
+  };
+
   for (const auto &section : shdrs) {
     if (section->sh_type != SHT::SHT_SYMTAB &&
         section->sh_type != SHT::SHT_DYNSYM)
       continue;
 
     unsigned long num = section->sh_size / section->sh_entsize;
+    auto symtab = get_elf_symbols(section, num);
 
-    if (auto symtab = get_elf_symbols(section, num)) {
+    auto& string_section = shdrs[section->sh_link];
+    char * test = get_str_tab(string_section);
+
+    for (const auto& psym: symtab) {
+      std::cout << test + psym->st_name << std::endl;
     }
+
   }
 }
 
