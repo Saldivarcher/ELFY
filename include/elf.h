@@ -109,19 +109,41 @@ struct section_header {
   elf_qword_t sh_entsize;
 };
 
+struct symbol_data {
+  // Index into the string table of the name of the symbol, or 0 for scratch
+  // register
+  elf_word_t st_name;
+
+  // Register number
+  char st_info;
+
+  // Unused
+  char st_other;
+
+  // Bind is typically `STB_GLobal`
+  elf_half_t st_shndx;
+
+  elf_qword_t st_value;
+  elf_qword_t st_size;
+};
+
+enum SHT { SHT_SYMTAB = 2, SHT_DYNSYM = 11 };
+
 static constexpr int elf_header_size = sizeof(elf_header);
 static constexpr int section_header_size = sizeof(section_header);
+
+using shdrs_ptr = std::unique_ptr<section_header>;
 
 class ELF {
 public:
   ELF(const char *);
 
-  bool process();
+  void process();
   void dump_symbols();
 
 private:
   elf_header e_header;
-  std::vector<section_header> shdrs;
+  std::vector<shdrs_ptr> shdrs;
 
   std::string_view filename;
 
@@ -130,8 +152,9 @@ private:
 
   bool is_elf();
 
-  void load_file();
+  std::unique_ptr<symbol_data> get_elf_symbols(const shdrs_ptr&, unsigned long &);
 
+  void load_file();
   void process_elf_header();
   void process_section_header();
 

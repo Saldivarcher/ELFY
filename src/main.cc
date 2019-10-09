@@ -9,8 +9,7 @@ int main(int argc, char **argv) {
 
   ELF elf(argv[1]);
 
-  if (!elf.process())
-    utility::error(1, "Not an elf file!");
+  elf.process();
 
   elf.dump_symbols();
 }

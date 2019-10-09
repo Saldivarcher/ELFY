@@ -22,22 +22,17 @@ void ELF::load_file() {
 void ELF::process_section_header() {
   const int section_size = e_header.e_shnum * section_header_size;
 
-  char section_headers[section_size];
+  section_header *section_headers =
+      (section_header *)calloc(section_size, section_header_size);
 
-  if (file.seekg(e_header.e_shoff); !file.read(section_headers, section_size))
+  if (file.seekg(e_header.e_shoff, std::ios::beg);
+      !file.read(reinterpret_cast<char *>(section_headers), section_size))
     utility::error(7, "Could not parse section header!");
 
-  int j = 0;
-  for (unsigned i = 0; i < e_header.e_shnum; i++) {
-    // TODO: Clean this up
-    char s[section_size];
-    std::strncpy(s, section_headers + j, section_header_size);
+  for (unsigned i = 0; i < e_header.e_shnum; i++)
+    shdrs.emplace_back(new section_header(section_headers[i]));
 
-    if (auto *sh = reinterpret_cast<section_header *>(s))
-      shdrs.push_back(*sh);
-    j += section_header_size;
-  }
-
+  free(section_headers);
   assert(shdrs.size() == e_header.e_shnum);
 }
 
@@ -53,13 +48,29 @@ void ELF::process_elf_header() {
     utility::error(6, "Could not parse elf header!");
 }
 
-bool ELF::process() {
+void ELF::process() {
   process_elf_header();
   process_section_header();
-
-  return true;
 }
 
-void ELF::dump_symbols() {}
+std::unique_ptr<symbol_data> ELF::get_elf_symbols(const shdrs_ptr& section,
+                                                  unsigned long &num) {
+}
+
+void ELF::dump_symbols() {
+  // 1. Iterate through sections
+  // 2. Get symbol table for each section
+  //
+  for (const auto &section : shdrs) {
+    if (section->sh_type != SHT::SHT_SYMTAB &&
+        section->sh_type != SHT::SHT_DYNSYM)
+      continue;
+
+    unsigned long num = section->sh_size / section->sh_entsize;
+
+    if (auto symtab = get_elf_symbols(section, num)) {
+    }
+  }
+}
 
 } // end of namespace elfy
