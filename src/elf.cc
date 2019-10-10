@@ -77,7 +77,7 @@ void ELF::dump_symbols() {
   // get the string table of a section
   auto get_str_tab = [&](auto& string_section) -> char * {
     // TODO: Seems to be segfaulting here. Fix.
-    char *strtab = nullptr;
+    char *strtab = new char[string_section->sh_size];
     file.seekg(string_section->sh_offset, std::ios::beg);
     file.read(strtab, string_section->sh_size);
     return strtab;
@@ -98,6 +98,7 @@ void ELF::dump_symbols() {
       std::cout << test + psym->st_name << std::endl;
     }
 
+    delete[] test;
   }
 }
 
