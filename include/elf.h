@@ -133,6 +133,7 @@ static constexpr int elf_header_size = sizeof(elf_header);
 static constexpr int section_header_size = sizeof(section_header);
 
 using shdrs_ptr = std::unique_ptr<section_header>;
+using sym_ptr = std::unique_ptr<symbol_data>;
 
 class ELF {
 public:
@@ -143,6 +144,8 @@ public:
 
 private:
   elf_header e_header;
+
+  // List of all the section headers
   std::vector<shdrs_ptr> shdrs;
 
   std::string_view filename;
@@ -150,16 +153,15 @@ private:
   // All the binary data of the file
   std::ifstream file;
 
+  // To check against the first 4 bytes in a file
+  static constexpr char magic_numbers[] = {ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3};
+
+  std::optional<std::vector<sym_ptr>> get_elf_symbols(const shdrs_ptr &, unsigned long &);
+
   bool is_elf();
-
-  std::vector<std::unique_ptr<symbol_data>> get_elf_symbols(const shdrs_ptr&, unsigned long &);
-
   void load_file();
   void process_elf_header();
   void process_section_header();
-
-  // To check against the first 4 bytes in a file
-  static constexpr char magic_numbers[] = {ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3};
 };
 } // end of namespace elfy
 
