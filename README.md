@@ -5,7 +5,7 @@ A simple ELF symbol name dumper
 Steps to build the project:
 
 ```
-$ git clone --recursive git@github.com:miguelsaldivar/ELFY.git
+$ git clone --recursive https://github.com/miguelsaldivar/ELFY.git
 $ mkdir build
 $ cd build
 $ CXX=clang++ CC=clang cmake  -DCMAKE_EXPORT_COMPILE_COMMANDS=1 ..
