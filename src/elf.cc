@@ -1,4 +1,5 @@
 #include "elf.h"
+#include <cpp_demangle.h>
 
 #include <cassert>
 #include <cstring>
@@ -24,7 +25,7 @@ void ELF::process_section_header() {
   const int section_size = e_header.e_shnum * section_header_size;
 
   section_header *section_headers =
-      (section_header *)calloc(section_size, section_header_size);
+      static_cast<section_header *>(calloc(section_size, section_header_size));
 
   if (file.seekg(e_header.e_shoff, std::ios::beg);
       !file.read(reinterpret_cast<char *>(section_headers), section_size))
@@ -61,7 +62,8 @@ ELF::get_elf_symbols(const shdrs_ptr &section, unsigned long &num) {
   if (section->sh_size == 0)
     return {};
 
-  auto *symbols = (symbol_data *)calloc(section->sh_size, sizeof(symbol_data));
+  auto *symbols =
+      static_cast<symbol_data *>(calloc(section->sh_size, sizeof(symbol_data)));
 
   file.seekg(section->sh_offset, std::ios::beg);
   file.read(reinterpret_cast<char *>(symbols), section->sh_size);
@@ -71,7 +73,7 @@ ELF::get_elf_symbols(const shdrs_ptr &section, unsigned long &num) {
     v.emplace_back(new symbol_data(symbols[i]));
 
   free(symbols);
-  return std::optional<std::vector<sym_ptr>> {std::move(v)};
+  return std::optional<std::vector<sym_ptr>>{std::move(v)};
 }
 
 void ELF::dump_symbols() {
@@ -81,7 +83,7 @@ void ELF::dump_symbols() {
 
   // get the string table of a section
   auto get_str_tab = [&](auto &string_section) -> char * {
-    // Avoid calling new?
+    // TODO: Avoid calling new?
     char *strtab = new char[string_section->sh_size];
     file.seekg(string_section->sh_offset, std::ios::beg);
     file.read(strtab, string_section->sh_size);
@@ -95,19 +97,23 @@ void ELF::dump_symbols() {
 
     unsigned long num = section->sh_size / section->sh_entsize;
     auto symtab = get_elf_symbols(section, num);
-
     if (!symtab)
       continue;
 
     auto &string_section = shdrs[section->sh_link];
-    char *test = get_str_tab(string_section);
+    char *str_table = get_str_tab(string_section);
 
     // TODO: Now demangle here
     for (const auto &psym : *symtab) {
-      std::cout << test + psym->st_name << std::endl;
+      char *sym_name = str_table + psym->st_name;
+      char *c = demangle(sym_name, DemangleOptions::DMGL_NO_OPTS);
+      // Don't print empty strings!
+      if (c && !c[0])
+        continue;
+      std::cout << c << std::endl;
     }
 
-    delete[] test;
+    delete[] str_table;
   }
 }
 
