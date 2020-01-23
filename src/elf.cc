@@ -111,6 +111,8 @@ void ELF::dump_symbols() {
       if (c && !c[0])
         continue;
       std::cout << c << std::endl;
+
+      free_demangled_name(c);
     }
 
     delete[] str_table;

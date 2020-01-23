@@ -10,8 +10,8 @@ include_directories(third_party/cpp_demangle/c_api)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     message(STATUS "Add clang sanitizers...")
-    #set(_ELFY_CLANG_SANITIZERS
-    #-fsanitize=address -fsanitize=undefined)
+    set(_ELFY_CLANG_SANITIZERS
+    -fsanitize=address -fsanitize=undefined)
     add_compile_options(${_ELFY_CLANG_SANITIZERS})
     link_libraries(${_ELFY_CLANG_SANITIZERS})
   endif()
