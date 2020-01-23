@@ -5,6 +5,7 @@ add_executable(elfy ${SOURCE_FILES})
 add_dependencies(elfy cpp_demangle_c_api)
 target_link_libraries(elfy
   debug "${CMAKE_SOURCE_DIR}/third_party/cpp_demangle/c_api/target/debug/libcpp_demangle_c_api.so"
+        "${CMAKE_SOURCE_DIR}/third_party/cpp_demangle/c_api/target/debug/libcpp_demangle_c_api.so"
 )
 
 install(TARGETS elfy RUNTIME DESTINATION bin)
